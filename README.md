@@ -6,9 +6,11 @@ Telegram-first study planner that builds day-by-day exam prep plans from user in
 
 ### Screenshots
 
-<!-- Add screenshot: ![Main menu](docs/screenshots/main-menu.png) -->
-<!-- Add screenshot: ![Plan overview](docs/screenshots/plan-overview.png) -->
-<!-- Add screenshot: ![Session view](docs/screenshots/session-view.png) -->
+![1](./docs/1.png)
+![1](./docs/2.png)
+![1](./docs/3.png)
+![1](./docs/4.png)
+![1](./docs/5.png)
 
 ## Product context
 
@@ -139,7 +141,7 @@ Install Docker and Docker Compose using Docker's official instructions for Ubunt
 
 ```bash
 git clone <YOUR_REPOSITORY_URL>
-cd study-planner-finished-project
+cd se-toolkit-hackathon
 ```
 
 #### 2. Create the environment file
