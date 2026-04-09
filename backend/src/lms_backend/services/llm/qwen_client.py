@@ -36,8 +36,17 @@ class QwenClient:
             headers["Authorization"] = f"Bearer {settings.llm_api_key}"
         payload = {
             "model": settings.llm_model,
-            "messages": [{"role": "user", "content": prompt}],
-            "temperature": 0.2,
+            "messages": [
+                {
+                    "role": "system",
+                    "content": (
+                        "You are a study-planning assistant. "
+                        "Return only valid JSON that follows the requested structure."
+                    ),
+                },
+                {"role": "user", "content": prompt},
+            ],
+            "temperature": 0.35,
         }
         async with httpx.AsyncClient(timeout=settings.llm_timeout_seconds) as client:
             response = await client.post(
@@ -61,6 +70,8 @@ class QwenClient:
         hours_per_day: float,
         topics: list[str],
         sessions: list[dict[str, object]],
+        materials_text: str,
+        preferred_mode: str,
     ) -> list[dict[str, object]]:
         prompt = build_refine_sessions_prompt(
             exam_name=exam_name,
@@ -68,6 +79,8 @@ class QwenClient:
             hours_per_day=hours_per_day,
             topics=topics,
             sessions=sessions,
+            materials_text=materials_text,
+            preferred_mode=preferred_mode,
         )
         raw = await self._chat(prompt)
         return validate_sessions(extract_json(raw))

@@ -4,10 +4,11 @@ from aiogram.fsm.context import FSMContext
 from aiogram.types import CallbackQuery
 from aiogram.types import Message
 
-from bot.keyboards import TODAY_BUTTON, main_menu_keyboard
+from bot.keyboards import TODAY_BUTTON, main_menu_keyboard, session_list_keyboard
 from bot.services.backend_client import BackendClient
 from bot.services.backend_client import BackendClientError
-from bot.utils.ui import cleanup_user_message, render_screen
+from bot.utils.formatters import format_session_browser
+from bot.utils.ui import cleanup_user_message, ensure_reply_keyboard, render_screen
 
 router = Router()
 backend = BackendClient()
@@ -54,28 +55,19 @@ async def _show_today(message: Message, state: FSMContext, tg_user: object | Non
         return
     today_number = int(plan.get("current_day_number") or 1)
     today_sessions = [s for s in plan["sessions"] if s["day_number"] == today_number]
-    pending_today = [s for s in today_sessions if s["status"] == "pending"]
     if not today_sessions:
-        text = "No sessions for today."
-    elif not pending_today:
-        text = f"Today plan: {plan['exam_name']} (day {today_number})\n\nAll today's sessions are already completed."
+        text = "📅 Nothing is scheduled for today yet."
+        markup = None
     else:
-        lines = [f"Today plan: {plan['exam_name']} (day {today_number})", ""]
-        for session in pending_today:
-            lines.append(
-                f"{session['session_order']}. {session['title']} — {session['duration_minutes']} min"
-            )
-            description = str(session.get("description", "")).strip()
-            if description:
-                lines.append(description)
-            lines.append("")
-        text = "\n".join(lines).strip()
+        text = format_session_browser(plan, today_sessions, context="today")
+        markup = session_list_keyboard(int(plan["id"]), today_sessions, context="today")
+    await ensure_reply_keyboard(message, state)
     await render_screen(
         message,
         state,
         text,
-        reply_markup=main_menu_keyboard(),
-        keyboard_key="main",
+        reply_markup=markup,
+        keyboard_key=f"today_sessions:{latest['id']}",
         force_new=True,
     )
 

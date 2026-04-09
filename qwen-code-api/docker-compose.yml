@@ -15,10 +15,12 @@ services:
       - PORT=${PORT:-8080}
       - ADDRESS=${ADDRESS:-0.0.0.0}
       - LOG_LEVEL=${LOG_LEVEL:-error}
+      - LOG_REQUESTS=${LOG_REQUESTS:-false}
       - MAX_RETRIES=${MAX_RETRIES:-5}
       - RETRY_DELAY_MS=${RETRY_DELAY_MS:-1000}
       - QWEN_CODE_AUTH_USE=${QWEN_CODE_AUTH_USE:-true}
       - QWEN_CODE_API_KEY=${QWEN_CODE_API_KEY:-}
+      - DEFAULT_MODEL=${DEFAULT_MODEL:-coder-model}
 
     restart: unless-stopped
 

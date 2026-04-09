@@ -1,4 +1,4 @@
-from pydantic import Field
+from pydantic import Field, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -29,6 +29,17 @@ class Settings(BaseSettings):
     llm_provider: str = Field(default="qwen", alias="LLM_PROVIDER")
 
     max_material_chars: int = Field(default=120_000, alias="MAX_MATERIAL_CHARS")
+
+    @field_validator("debug", mode="before")
+    @classmethod
+    def parse_debug(cls, value: object) -> object:
+        if isinstance(value, str):
+            normalized = value.strip().lower()
+            if normalized == "release":
+                return False
+            if normalized == "debug":
+                return True
+        return value
 
     @property
     def cors_origins(self) -> list[str]:

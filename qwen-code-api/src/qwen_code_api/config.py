@@ -3,26 +3,31 @@
 from pathlib import Path
 
 from pydantic import Field
-from pydantic_settings import BaseSettings
+from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 class Settings(BaseSettings):
     """Application settings loaded from environment variables."""
 
+    model_config = SettingsConfigDict(
+        env_file=(".env.secret", ".env"),
+        extra="ignore",
+    )
+
     # Server configuration
-    port: int = Field(..., alias="PORT")
-    address: str = Field(..., alias="ADDRESS")
+    port: int = Field(default=8080, alias="PORT")
+    address: str = Field(default="0.0.0.0", alias="ADDRESS")
 
     # API authentication
-    qwen_code_api_key: str = Field(..., alias="QWEN_CODE_API_KEY")
-    qwen_code_auth_use: bool = Field(..., alias="QWEN_CODE_AUTH_USE")
+    qwen_code_api_key: str = Field(default="", alias="QWEN_CODE_API_KEY")
+    qwen_code_auth_use: bool = Field(default=True, alias="QWEN_CODE_AUTH_USE")
 
     # Model configuration
-    default_model: str = Field(..., alias="DEFAULT_MODEL")
+    default_model: str = Field(default="coder-model", alias="DEFAULT_MODEL")
 
     # Retry configuration
-    max_retries: int = Field(..., alias="MAX_RETRIES")
-    retry_delay_ms: int = Field(..., alias="RETRY_DELAY_MS")
+    max_retries: int = Field(default=5, alias="MAX_RETRIES")
+    retry_delay_ms: int = Field(default=1000, alias="RETRY_DELAY_MS")
 
     # Qwen API configuration (hardcoded, not from env)
     qwen_api_base: str = "https://dashscope.aliyuncs.com/compatible-mode/v1"
@@ -35,8 +40,8 @@ class Settings(BaseSettings):
     creds_file: Path = Path.home() / ".qwen" / "oauth_creds.json"
 
     # Logging
-    log_level: str = Field(..., alias="LOG_LEVEL")
-    log_requests: bool = Field(..., alias="LOG_REQUESTS")
+    log_level: str = Field(default="error", alias="LOG_LEVEL")
+    log_requests: bool = Field(default=False, alias="LOG_REQUESTS")
 
     @property
     def api_keys(self) -> list[str] | None:

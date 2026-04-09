@@ -57,10 +57,11 @@ async def _show_progress(message: Message, state: FSMContext, tg_user: object | 
         state,
         "\n".join(
             [
-                f"Progress for: {latest['exam_name']}",
-                f"Completed: {progress['completed']}/{progress['total']} ({progress['completion_percent']}%)",
-                f"Pending: {progress['pending']}",
-                f"Skipped: {progress['skipped']}",
+                f"📈 Progress for {latest['exam_name']}",
+                "",
+                f"✅ Completed: {progress['completed']}/{progress['total']} ({progress['completion_percent']}%)",
+                f"◻️ Left: {progress['pending']}",
+                f"⏭ Skipped: {progress['skipped']}",
             ]
         ),
         reply_markup=main_menu_keyboard(),

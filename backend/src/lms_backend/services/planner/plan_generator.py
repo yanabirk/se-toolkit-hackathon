@@ -19,10 +19,43 @@ from lms_backend.settings import settings
 from lms_backend.utils.enums import LlmRequestStatus
 
 
+GENERIC_TITLES = {"study session", "session", "session title"}
+GENERIC_DESCRIPTIONS = {
+    "review material",
+    "study theory",
+    "practice problems",
+    "core study block",
+}
+
+
 def _get_llm_client() -> QwenClient | NanobotClient:
     if settings.llm_provider == "nanobot":
         return NanobotClient()
     return QwenClient()
+
+
+def _normalize_text(value: object) -> str:
+    return " ".join(str(value).split()).strip()
+
+
+def _title_is_useful(title: object) -> bool:
+    normalized = _normalize_text(title).lower()
+    if not normalized:
+        return False
+    if normalized in GENERIC_TITLES:
+        return False
+    if normalized.startswith("session ") and normalized[8:].isdigit():
+        return False
+    return len(normalized) >= 6
+
+
+def _description_is_useful(description: object) -> bool:
+    normalized = _normalize_text(description).lower()
+    if not normalized:
+        return False
+    if normalized in GENERIC_DESCRIPTIONS:
+        return False
+    return len(normalized.split()) >= 6
 
 
 def _merge_refined_sessions(
@@ -46,8 +79,16 @@ def _merge_refined_sessions(
         merged.append(
             {
                 **session,
-                "title": str(refined.get("title", session["title"])).strip() or str(session["title"]),
-                "description": str(refined.get("description", session["description"])).strip(),
+                "title": (
+                    _normalize_text(refined.get("title"))
+                    if _title_is_useful(refined.get("title"))
+                    else str(session["title"])
+                ),
+                "description": (
+                    _normalize_text(refined.get("description"))
+                    if _description_is_useful(refined.get("description"))
+                    else str(session["description"])
+                ),
                 "source": refined.get("source", session["source"]),
             }
         )
@@ -100,7 +141,12 @@ async def generate_plan(session: AsyncSession, plan: StudyPlan) -> list[dict[str
     topics = [topic.topic_name for topic in plan_topics]
     if not topics:
         topics = await analyze_materials_and_topics(session, plan)
-    sessions = apply_topics_to_skeleton(skeleton, topics, preferred_mode=preferred_mode)
+    sessions = apply_topics_to_skeleton(
+        skeleton,
+        topics,
+        preferred_mode=preferred_mode,
+        exam_name=plan.exam_name,
+    )
 
     llm_client = _get_llm_client()
     try:
@@ -110,6 +156,8 @@ async def generate_plan(session: AsyncSession, plan: StudyPlan) -> list[dict[str
             hours_per_day=plan.hours_per_day,
             topics=topics,
             sessions=sessions,
+            materials_text=materials_text,
+            preferred_mode=preferred_mode,
         )
         sessions = _merge_refined_sessions(sessions, refined)
         await create_llm_request(

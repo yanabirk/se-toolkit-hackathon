@@ -23,12 +23,17 @@ from bot.keyboards import (
     main_menu_keyboard,
     plan_actions_keyboard,
     plans_menu_keyboard,
+    session_list_keyboard,
     upload_material_keyboard,
 )
 from bot.services.backend_client import BackendClient, BackendClientError
 from bot.states import PlanStates
 from bot.utils.file_utils import detect_file_name, download_telegram_file
-from bot.utils.formatters import format_plan_overview, format_plan_sessions, format_plans_list
+from bot.utils.formatters import (
+    format_plan_overview,
+    format_plans_list,
+    format_session_browser,
+)
 from bot.utils.ui import cleanup_user_message, clear_state_preserving_screen, render_screen
 
 router = Router()
@@ -121,6 +126,40 @@ async def _open_plan(
     )
 
 
+async def _show_plan_sessions(
+    message: Message,
+    state: FSMContext,
+    plan_id: int,
+) -> None:
+    try:
+        plan = await backend.get_plan(plan_id)
+    except BackendClientError as exc:
+        await render_screen(
+            message,
+            state,
+            f"Couldn't load sessions: {exc}",
+            reply_markup=plan_actions_keyboard(),
+            keyboard_key="plan_actions",
+        )
+        return
+
+    sessions = list(plan.get("sessions", []))
+    await state.set_state(PlanStates.plan_actions)
+    await state.update_data(selected_plan_id=plan_id)
+    await render_screen(
+        message,
+        state,
+        format_session_browser(plan, sessions, context="plan"),
+        reply_markup=(
+            session_list_keyboard(plan_id, sessions, context="plan")
+            if sessions
+            else None
+        ),
+        keyboard_key=f"plan_sessions:{plan_id}",
+        force_new=True,
+    )
+
+
 def _find_next_pending_session(plan: dict) -> dict | None:
     for session in plan.get("sessions", []):
         if session.get("status") == "pending":
@@ -204,25 +243,7 @@ async def view_plan(message: Message, state: FSMContext) -> None:
         )
         await cleanup_user_message(message)
         return
-    try:
-        plan = await backend.get_plan(plan_id)
-    except BackendClientError as exc:
-        await render_screen(
-            message,
-            state,
-            f"Failed to load plan: {exc}",
-            reply_markup=plan_actions_keyboard(),
-            keyboard_key="plan_actions",
-        )
-        await cleanup_user_message(message)
-        return
-    await render_screen(
-        message,
-        state,
-        format_plan_sessions(plan),
-        reply_markup=plan_actions_keyboard(),
-        keyboard_key="plan_actions",
-    )
+    await _show_plan_sessions(message, state, plan_id)
     await cleanup_user_message(message)
 
 

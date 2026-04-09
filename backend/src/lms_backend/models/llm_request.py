@@ -1,6 +1,6 @@
 from typing import Any
 
-from sqlalchemy import Index
+from sqlalchemy import Index, JSON
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlmodel import Column, Field, SQLModel
 
@@ -18,7 +18,13 @@ class LlmRequest(SQLModel, table=True):
     provider: str
     model: str
     prompt_version: str = "v1"
-    request_payload: dict[str, Any] = Field(default_factory=dict, sa_column=Column(JSONB, nullable=False))
-    response_payload: dict[str, Any] = Field(default_factory=dict, sa_column=Column(JSONB, nullable=False))
+    request_payload: dict[str, Any] = Field(
+        default_factory=dict,
+        sa_column=Column(JSON().with_variant(JSONB, "postgresql"), nullable=False),
+    )
+    response_payload: dict[str, Any] = Field(
+        default_factory=dict,
+        sa_column=Column(JSON().with_variant(JSONB, "postgresql"), nullable=False),
+    )
     status: str
     created_at: str = Field(default_factory=lambda: utcnow_naive().isoformat())

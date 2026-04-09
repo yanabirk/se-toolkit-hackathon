@@ -12,9 +12,14 @@ from starlette.responses import Response
 from lms_backend.auth import verify_api_key
 from lms_backend.database import init_db
 from lms_backend.routers import (
+    analytics,
     generation,
     health,
+    interactions,
+    items,
+    learners,
     materials,
+    pipeline,
     study_plans,
     study_sessions,
     telegram_users,
@@ -93,6 +98,16 @@ app.add_middleware(
 )
 
 app.include_router(health.router, tags=["health"])
+app.include_router(items.router, prefix="/items", tags=["items"])
+app.include_router(interactions.router, prefix="/interactions", tags=["interactions"])
+app.include_router(learners.router, prefix="/learners", tags=["learners"])
+app.include_router(analytics.router, prefix="/analytics", tags=["analytics"])
+app.include_router(
+    pipeline.router,
+    prefix="/pipeline",
+    tags=["pipeline"],
+    dependencies=[Depends(verify_api_key)],
+)
 
 secured_dependencies = [Depends(verify_api_key)]
 app.include_router(

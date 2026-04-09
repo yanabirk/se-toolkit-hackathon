@@ -51,7 +51,13 @@ This is a Python port of the original [qwen-code-api](https://github.com/aptdnfa
     uv sync
     ```
 
-2. **Authenticate**: You need to authenticate with Qwen to generate the required credentials file.
+2. **Create a local env file**:
+
+    ```bash
+    cp .env.example .env.secret
+    ```
+
+3. **Authenticate**: You need to authenticate with Qwen to generate the required credentials file.
 
     ```bash
     qwen login
@@ -59,7 +65,7 @@ This is a Python port of the original [qwen-code-api](https://github.com/aptdnfa
 
     This will create the `~/.qwen/oauth_creds.json` file needed by the proxy server.
 
-3. **Start the Server**:
+4. **Start the Server**:
 
     ```bash
     uv run python -m qwen_code_api.main
@@ -71,7 +77,7 @@ This is a Python port of the original [qwen-code-api](https://github.com/aptdnfa
     uv run uvicorn qwen_code_api.main:app --host 0.0.0.0 --port 8080
     ```
 
-4. **Use the Proxy**: Point your OpenAI-compatible client to `http://localhost:8080/v1`.
+5. **Use the Proxy**: Point your OpenAI-compatible client to `http://localhost:8080/v1`.
 
 **Note**: API key can be any random string if not configured - it doesn't matter for this proxy.
 
@@ -102,8 +108,9 @@ The proxy server can be configured using environment variables. Create a `.env.s
 | Variable             | Description                                              | Default            |
 | -------------------- | -------------------------------------------------------- | ------------------ |
 | `PORT`               | Server port                                              | `8080`             |
-| `HOST`               | Server host                                              | `0.0.0.0`          |
+| `ADDRESS`            | Server host                                              | `0.0.0.0`          |
 | `LOG_LEVEL`          | Logging level (`error`, `debug`)                         | `error`            |
+| `LOG_REQUESTS`       | Enable request logging                                   | `false`            |
 | `MAX_RETRIES`        | Maximum retry attempts for failed requests               | `5`                |
 | `RETRY_DELAY_MS`     | Base retry delay in milliseconds                         | `1000`             |
 | `QWEN_CODE_AUTH_USE` | Use OAuth authentication from `~/.qwen/oauth_creds.json` | `true`             |

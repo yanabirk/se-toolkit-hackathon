@@ -32,7 +32,7 @@ async def start_handler(message: Message, state: FSMContext) -> None:
     await render_screen(
         message,
         state,
-        "Study planner bot is ready. Choose an action.",
+        "Study planner is ready.\n\nPick what you want to do next.",
         reply_markup=main_menu_keyboard(),
         keyboard_key="main",
         force_new=True,
@@ -46,7 +46,7 @@ async def main_menu_handler(message: Message, state: FSMContext) -> None:
     await render_screen(
         message,
         state,
-        "Choose an action.",
+        "What would you like to do?",
         reply_markup=main_menu_keyboard(),
         keyboard_key="main",
         force_new=True,

@@ -13,4 +13,6 @@ class BaseLlmClient(Protocol):
         hours_per_day: float,
         topics: list[str],
         sessions: list[dict[str, object]],
+        materials_text: str,
+        preferred_mode: str,
     ) -> list[dict[str, object]]: ...

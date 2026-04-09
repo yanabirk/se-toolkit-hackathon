@@ -1,9 +1,12 @@
 from aiogram.exceptions import TelegramBadRequest
 from aiogram.fsm.context import FSMContext
-from aiogram.types import Message, ReplyKeyboardMarkup
+from aiogram.types import InlineKeyboardMarkup, Message, ReplyKeyboardMarkup
+
+from bot.keyboards import main_menu_keyboard
 
 SCREEN_MESSAGE_ID_KEY = "screen_message_id"
 SCREEN_KEYBOARD_KEY = "screen_keyboard_key"
+REPLY_KEYBOARD_KEY = "reply_keyboard_key"
 
 
 async def render_screen(
@@ -11,7 +14,7 @@ async def render_screen(
     state: FSMContext,
     text: str,
     *,
-    reply_markup: ReplyKeyboardMarkup | None = None,
+    reply_markup: ReplyKeyboardMarkup | InlineKeyboardMarkup | None = None,
     keyboard_key: str | None = None,
     force_new: bool = False,
 ) -> Message:
@@ -29,11 +32,19 @@ async def render_screen(
                 chat_id=message.chat.id,
                 message_id=int(previous_message_id),
                 text=text,
+                reply_markup=(
+                    reply_markup if isinstance(reply_markup, InlineKeyboardMarkup) else None
+                ),
             )
             await state.update_data(
                 **{
                     SCREEN_MESSAGE_ID_KEY: int(previous_message_id),
                     SCREEN_KEYBOARD_KEY: keyboard_key,
+                    **(
+                        {REPLY_KEYBOARD_KEY: keyboard_key}
+                        if isinstance(reply_markup, ReplyKeyboardMarkup)
+                        else {}
+                    ),
                 }
             )
             return message
@@ -55,9 +66,31 @@ async def render_screen(
         **{
             SCREEN_MESSAGE_ID_KEY: sent.message_id,
             SCREEN_KEYBOARD_KEY: keyboard_key,
+            **(
+                {REPLY_KEYBOARD_KEY: keyboard_key}
+                if isinstance(reply_markup, ReplyKeyboardMarkup)
+                else {}
+            ),
         }
     )
     return sent
+
+
+async def ensure_reply_keyboard(
+    message: Message,
+    state: FSMContext,
+    *,
+    reply_markup: ReplyKeyboardMarkup | None = None,
+    keyboard_key: str = "main",
+) -> None:
+    data = await state.get_data()
+    if data.get(REPLY_KEYBOARD_KEY):
+        return
+    await message.answer(
+        "Use the menu below anytime.",
+        reply_markup=reply_markup or main_menu_keyboard(),
+    )
+    await state.update_data(**{REPLY_KEYBOARD_KEY: keyboard_key})
 
 
 async def cleanup_user_message(message: Message) -> None:
@@ -71,11 +104,23 @@ async def clear_state_preserving_screen(state: FSMContext) -> None:
     data = await state.get_data()
     screen_message_id = data.get(SCREEN_MESSAGE_ID_KEY)
     screen_keyboard_key = data.get(SCREEN_KEYBOARD_KEY)
+    reply_keyboard_key = data.get(REPLY_KEYBOARD_KEY)
     await state.clear()
-    if screen_message_id is not None:
+    if screen_message_id is not None or reply_keyboard_key is not None:
         await state.update_data(
             **{
-                SCREEN_MESSAGE_ID_KEY: screen_message_id,
-                SCREEN_KEYBOARD_KEY: screen_keyboard_key,
+                **(
+                    {
+                        SCREEN_MESSAGE_ID_KEY: screen_message_id,
+                        SCREEN_KEYBOARD_KEY: screen_keyboard_key,
+                    }
+                    if screen_message_id is not None
+                    else {}
+                ),
+                **(
+                    {REPLY_KEYBOARD_KEY: reply_keyboard_key}
+                    if reply_keyboard_key is not None
+                    else {}
+                ),
             }
         )
