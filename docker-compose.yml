@@ -1,0 +1,88 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  backend:
+    build:
+      context: ./backend
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      NAME: study-planner-backend
+      DEBUG: "true"
+      ADDRESS: 0.0.0.0
+      PORT: 8000
+      RELOAD: "false"
+      CORS_ORIGINS: ${BACKEND_CORS_ORIGINS}
+      LMS_API_KEY: ${BACKEND_API_KEY}
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_NAME: ${POSTGRES_DB}
+      DB_USER: ${POSTGRES_USER}
+      DB_PASSWORD: ${POSTGRES_PASSWORD}
+      STORAGE_ROOT: ${STORAGE_ROOT}
+      LLM_API_BASE_URL: ${LLM_API_BASE_URL}
+      LLM_API_KEY: ${LLM_API_KEY}
+      LLM_API_MODEL: ${LLM_API_MODEL}
+      LLM_PROVIDER: ${LLM_PROVIDER}
+      LLM_TIMEOUT_SECONDS: ${LLM_TIMEOUT_SECONDS}
+    ports:
+      - "${BACKEND_PORT:-8000}:8000"
+    volumes:
+      - backend_storage:/app/storage
+    healthcheck:
+      test: ["CMD-SHELL", "python -c \"import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health')\""]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  client-telegram-bot:
+    build:
+      context: ./client-telegram-bot
+    restart: unless-stopped
+    depends_on:
+      backend:
+        condition: service_healthy
+    environment:
+      TELEGRAM_BOT_TOKEN: ${TELEGRAM_BOT_TOKEN}
+      BACKEND_BASE_URL: ${TELEGRAM_BACKEND_BASE_URL}
+      BACKEND_API_KEY: ${TELEGRAM_BACKEND_API_KEY}
+
+  qwen-code-api:
+    build:
+      context: ./qwen-code-api
+    restart: unless-stopped
+    environment:
+      PORT: 8080
+      ADDRESS: 0.0.0.0
+      LOG_LEVEL: ${QWEN_LOG_LEVEL:-error}
+      MAX_RETRIES: ${QWEN_MAX_RETRIES:-2}
+      RETRY_DELAY_MS: ${QWEN_RETRY_DELAY_MS:-500}
+      QWEN_CODE_AUTH_USE: ${QWEN_CODE_AUTH_USE:-false}
+      QWEN_CODE_API_KEY: ${QWEN_CODE_API_KEY:-}
+      LOG_REQUESTS: ${QWEN_LOG_REQUESTS:-false}
+      DEFAULT_MODEL: ${QWEN_DEFAULT_MODEL:-qwen}
+    ports:
+      - "${QWEN_PORT:-8080}:8080"
+    volumes:
+      - ${HOME}/.qwen:/mnt/qwen-creds:ro
+
+volumes:
+  postgres_data:
+  backend_storage:
